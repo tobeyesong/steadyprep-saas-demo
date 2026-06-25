@@ -1,5 +1,5 @@
-import { TrainingMvp } from "@/components/training-mvp";
+import { SteadyPrepLaunch } from "@/components/steady-prep-launch";
 
 export default function Home() {
-  return <TrainingMvp />;
+  return <SteadyPrepLaunch />;
 }

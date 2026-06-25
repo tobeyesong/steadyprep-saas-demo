@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
@@ -13,9 +13,14 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Gym Roleplay Training",
+  title: "SteadyPrep SaaS Launch",
   description:
-    "Coach roleplay practice layered onto a web-first training program builder.",
+    "Production launch cockpit for a Supabase, Stripe, Vercel, and Claude AP exam prep SaaS.",
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
 };
 
 export default function RootLayout({
