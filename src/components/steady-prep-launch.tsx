@@ -107,6 +107,14 @@ const demoLedgerEvents = [
   "credit_ledger inserts +150 monthly credits after payment success.",
 ];
 
+const stripeTestCard = [
+  ["Card number", "4242 4242 4242 4242"],
+  ["Expiration", "12 / 34"],
+  ["CVC", "123"],
+  ["ZIP", "94107"],
+  ["Email", "demo.student@example.com"],
+];
+
 function classNames(...classes: Array<string | false | null | undefined>) {
   return classes.filter(Boolean).join(" ");
 }
@@ -293,10 +301,10 @@ function Hero() {
                     Authenticated view with simulated billing and credit state.
                   </p>
                 </div>
-                <span className="rounded-full bg-teal-50 py-1 pr-2 pl-1 text-sm/6 text-teal-700 ring-1 ring-teal-600/15 sm:text-xs/5">
-                  <span className="inline-flex items-center gap-1">
+                <span className="shrink-0 rounded-full bg-teal-50 py-1 pr-2 pl-1 text-sm/6 whitespace-nowrap text-teal-700 ring-1 ring-teal-600/15 sm:text-xs/5">
+                  <span className="inline-flex items-center gap-1 whitespace-nowrap">
                     <Sparkles className="size-4 h-lh shrink-0" aria-hidden="true" />
-                    Demo mode
+                    <span>Demo mode</span>
                   </span>
                 </span>
               </div>
@@ -431,21 +439,43 @@ function DemoModeSection() {
               server route using a test-mode key. The route rejects live keys, so
               no real card can be charged.
             </p>
-            <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+            <div className="mt-5 max-w-xl rounded-lg bg-white p-4 ring-1 ring-zinc-950/10">
+              <div className="flex items-center gap-2">
+                <CreditCard className="size-4 shrink-0 stroke-teal-600" aria-hidden="true" />
+                <h3 className="text-base/7 font-semibold text-zinc-950 sm:text-sm/6">
+                  Stripe test card
+                </h3>
+              </div>
+              <dl className="mt-4 grid gap-3 sm:grid-cols-2">
+                {stripeTestCard.map(([label, value]) => (
+                  <div key={label} className="min-w-0">
+                    <dt className="text-sm/6 text-zinc-500">{label}</dt>
+                    <dd className="mt-1 truncate font-mono text-base/7 text-zinc-950 sm:text-sm/6">
+                      {value}
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+              <p className="mt-3 text-sm/6 text-zinc-500">
+                Test card only. It works with Stripe test mode and never moves real
+                money.
+              </p>
+            </div>
+            <div className="mt-6 grid max-w-xl gap-3 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
               <button
                 type="button"
                 onClick={() => setStage("signed-in")}
                 disabled={isSignedIn}
-                className="inline-flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-base/6 font-medium text-zinc-700 ring-1 ring-zinc-950/10 hover:bg-zinc-950/2.5 disabled:opacity-50 sm:text-sm/6"
+                className="inline-flex min-w-0 items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-base/6 font-medium whitespace-nowrap text-zinc-700 ring-1 ring-zinc-950/10 hover:bg-zinc-950/2.5 disabled:opacity-50 sm:py-2 sm:text-sm/6"
               >
                 <UserCheck className="size-4 h-lh shrink-0" aria-hidden="true" />
-                Sign in demo student
+                Sign in student
               </button>
               <button
                 type="button"
                 onClick={openStripeCheckout}
                 disabled={!isSignedIn || isSubscribed || isCheckoutLoading}
-                className="inline-flex items-center justify-center gap-2 rounded-lg bg-teal-600 px-3 py-2 text-base/6 font-medium text-white ring-1 ring-teal-600 hover:bg-teal-700 disabled:opacity-50 sm:text-sm/6"
+                className="inline-flex min-w-0 items-center justify-center gap-2 rounded-lg bg-teal-600 px-3 py-2.5 text-base/6 font-medium whitespace-nowrap text-white ring-1 ring-teal-600 hover:bg-teal-700 disabled:opacity-50 sm:col-span-2 sm:py-2 sm:text-sm/6 lg:col-span-1 xl:col-span-2"
               >
                 <CreditCard className="size-4 h-lh shrink-0" aria-hidden="true" />
                 {isCheckoutLoading ? "Opening Checkout" : "Open Stripe Checkout"}
@@ -457,15 +487,15 @@ function DemoModeSection() {
                   setCheckoutMessage("Simulated checkout.session.completed webhook grant.");
                 }}
                 disabled={!isSignedIn || isSubscribed}
-                className="inline-flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-base/6 font-medium text-zinc-700 ring-1 ring-zinc-950/10 hover:bg-zinc-950/2.5 disabled:opacity-50 sm:text-sm/6"
+                className="inline-flex min-w-0 items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-base/6 font-medium whitespace-nowrap text-zinc-700 ring-1 ring-zinc-950/10 hover:bg-zinc-950/2.5 disabled:opacity-50 sm:py-2 sm:text-sm/6"
               >
                 <ReceiptText className="size-4 h-lh shrink-0" aria-hidden="true" />
-                Simulate webhook grant
+                Simulate webhook
               </button>
               <button
                 type="button"
                 onClick={resetDemo}
-                className="inline-flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-base/6 font-medium text-zinc-600 hover:bg-zinc-950/2.5 sm:text-sm/6"
+                className="inline-flex min-w-0 items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-base/6 font-medium whitespace-nowrap text-zinc-600 hover:bg-zinc-950/2.5 sm:py-2 sm:text-sm/6"
               >
                 <RefreshCw className="size-4 h-lh shrink-0" aria-hidden="true" />
                 Reset
