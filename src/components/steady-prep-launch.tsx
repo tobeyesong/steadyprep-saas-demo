@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
   ArrowRight,
@@ -28,6 +28,7 @@ const tabs = ["Launch plan", "Architecture", "Student app", "Demo flow"] as cons
 
 type Tab = (typeof tabs)[number];
 type DemoStage = "visitor" | "signed-in" | "subscribed";
+type CheckoutStatus = "idle" | "loading" | "error";
 
 const metrics = [
   { label: "Subscription", value: "$50", note: "Simulated monthly plan" },
@@ -101,8 +102,9 @@ const schemaRows = [
 const demoLedgerEvents = [
   "supabase.auth.signInWithPassword returned demo_student_42.",
   "profiles row loaded through user_id = auth.uid().",
-  "stripe.checkout.session.completed simulated in test mode.",
-  "credit_ledger inserted +150 monthly credits with demo webhook ID.",
+  "POST /api/stripe/checkout created a test Checkout Session.",
+  "Stripe webhook route verifies stripe-signature before credit grants.",
+  "credit_ledger inserts +150 monthly credits after payment success.",
 ];
 
 function classNames(...classes: Array<string | false | null | undefined>) {
@@ -332,8 +334,11 @@ function Hero() {
 
 function DemoModeSection() {
   const [stage, setStage] = useState<DemoStage>("visitor");
+  const [checkoutStatus, setCheckoutStatus] = useState<CheckoutStatus>("idle");
+  const [checkoutMessage, setCheckoutMessage] = useState<string | null>(null);
   const isSignedIn = stage === "signed-in" || stage === "subscribed";
   const isSubscribed = stage === "subscribed";
+  const isCheckoutLoading = checkoutStatus === "loading";
   const credits = isSubscribed ? 150 : isSignedIn ? 12 : 0;
   const supabaseProjectRef =
     process.env.NEXT_PUBLIC_SUPABASE_PROJECT_REF ?? "demo-project-ref";
@@ -352,6 +357,64 @@ function DemoModeSection() {
       ? demoLedgerEvents.slice(0, 2)
       : ["Demo visitor can inspect the flow before signing in."];
 
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const stripeResult = params.get("stripe");
+    let timeoutId: number | undefined;
+
+    if (stripeResult === "success") {
+      timeoutId = window.setTimeout(() => {
+        setStage("subscribed");
+        setCheckoutMessage("Stripe returned from a test Checkout Session.");
+      }, 0);
+    }
+
+    if (stripeResult === "cancelled") {
+      timeoutId = window.setTimeout(() => {
+        setStage("signed-in");
+        setCheckoutMessage("Stripe Checkout was cancelled before a test subscription completed.");
+      }, 0);
+    }
+
+    return () => {
+      if (timeoutId) {
+        window.clearTimeout(timeoutId);
+      }
+    };
+  }, []);
+
+  async function openStripeCheckout() {
+    setCheckoutStatus("loading");
+    setCheckoutMessage(null);
+
+    const response = await fetch("/api/stripe/checkout", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ customerEmail: "demo.student@example.com" }),
+    });
+    const payload = (await response.json().catch(() => ({}))) as {
+      error?: string;
+      url?: string;
+    };
+
+    if (!response.ok || !payload.url) {
+      setCheckoutStatus("error");
+      setCheckoutMessage(
+        payload.error ??
+          "Stripe Checkout is not configured for this deployment yet.",
+      );
+      return;
+    }
+
+    window.location.assign(payload.url);
+  }
+
+  function resetDemo() {
+    setStage("visitor");
+    setCheckoutStatus("idle");
+    setCheckoutMessage(null);
+  }
+
   return (
     <section id="demo" className="bg-zinc-50 py-12 sm:py-16">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -364,10 +427,9 @@ function DemoModeSection() {
               Click through Supabase and Stripe without enabling charges.
             </h2>
             <p className="mt-4 max-w-[48ch] text-lg/8 text-pretty text-zinc-600">
-              This demo uses a test-mode Stripe publishable key for presentation
-              and simulated server events for checkout, webhooks, and credit grants.
-              No secret key is stored, no Checkout Session is created, and no card
-              can be charged.
+              This demo creates a real Stripe-hosted Checkout Session from a
+              server route using a test-mode key. The route rejects live keys, so
+              no real card can be charged.
             </p>
             <div className="mt-6 flex flex-col gap-3 sm:flex-row">
               <button
@@ -381,22 +443,46 @@ function DemoModeSection() {
               </button>
               <button
                 type="button"
-                onClick={() => setStage("subscribed")}
-                disabled={!isSignedIn || isSubscribed}
-                className="inline-flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-base/6 font-medium text-zinc-700 ring-1 ring-zinc-950/10 hover:bg-zinc-950/2.5 disabled:opacity-50 sm:text-sm/6"
+                onClick={openStripeCheckout}
+                disabled={!isSignedIn || isSubscribed || isCheckoutLoading}
+                className="inline-flex items-center justify-center gap-2 rounded-lg bg-teal-600 px-3 py-2 text-base/6 font-medium text-white ring-1 ring-teal-600 hover:bg-teal-700 disabled:opacity-50 sm:text-sm/6"
               >
                 <CreditCard className="size-4 h-lh shrink-0" aria-hidden="true" />
-                Simulate Stripe checkout
+                {isCheckoutLoading ? "Opening Checkout" : "Open Stripe Checkout"}
               </button>
               <button
                 type="button"
-                onClick={() => setStage("visitor")}
+                onClick={() => {
+                  setStage("subscribed");
+                  setCheckoutMessage("Simulated checkout.session.completed webhook grant.");
+                }}
+                disabled={!isSignedIn || isSubscribed}
+                className="inline-flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-base/6 font-medium text-zinc-700 ring-1 ring-zinc-950/10 hover:bg-zinc-950/2.5 disabled:opacity-50 sm:text-sm/6"
+              >
+                <ReceiptText className="size-4 h-lh shrink-0" aria-hidden="true" />
+                Simulate webhook grant
+              </button>
+              <button
+                type="button"
+                onClick={resetDemo}
                 className="inline-flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-base/6 font-medium text-zinc-600 hover:bg-zinc-950/2.5 sm:text-sm/6"
               >
                 <RefreshCw className="size-4 h-lh shrink-0" aria-hidden="true" />
                 Reset
               </button>
             </div>
+            {checkoutMessage ? (
+              <p
+                className={classNames(
+                  "mt-4 rounded-lg px-3 py-2 text-base/7 sm:text-sm/6",
+                  checkoutStatus === "error"
+                    ? "bg-red-50 text-red-700 ring-1 ring-red-600/15"
+                    : "bg-teal-50 text-teal-700 ring-1 ring-teal-600/15",
+                )}
+              >
+                {checkoutMessage}
+              </p>
+            ) : null}
           </div>
 
           <div className="grid min-w-0 gap-4">
